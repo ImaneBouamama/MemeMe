@@ -25,32 +25,36 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         NSAttributedString.Key.strokeColor: UIColor.black,
         NSAttributedString.Key.foregroundColor: UIColor.white,
         NSAttributedString.Key.font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
-        NSAttributedString.Key.strokeWidth:  10
+        NSAttributedString.Key.strokeWidth:  -10
     ]
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.setUpTextField( textField: topTextField, text: "Top" )
+        self.setUpTextField( textField: bottomTextField, text: "Bottom" )
         cameraButton.isEnabled = UIImagePickerController.isSourceTypeAvailable( .camera )
-        topTextField.textAlignment = NSTextAlignment.center
-        bottomTextField.textAlignment = .center
-        topTextField.text = "TOP"
-        bottomTextField.text = "BOTTOM"
-   
-        topTextField.delegate = self
-        bottomTextField.delegate = self
-        topTextField.defaultTextAttributes = memeTextAttributes
-        bottomTextField.defaultTextAttributes = memeTextAttributes
         imageView.contentMode = .scaleAspectFit
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear( animated )
+        subscribeToKeyboardNotification()
+        subscribeToKeyboardHidingNotification()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear( animated )
+        unsubscribeFromKeyBoardNotification()
+        unsubscribeFromKeyBoardHidingNotification()
     }
 
+    func setUpTextField( textField: UITextField, text: String ) {
+        textField.textAlignment = .center
+        textField.delegate = self
+        textField.text = text
+        textField.defaultTextAttributes = memeTextAttributes
+    }
+    
     func pickAnImageFrom ( sourceType : UIImagePickerController.SourceType ) {
         let pickerController = UIImagePickerController()
         pickerController.delegate = self
@@ -68,9 +72,19 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     @IBAction func shareButtonClicked( _ sender: UIButton ) {
         let screenShot = takeScreenshotOfTheView()
-        memedImageToBeSaved = MemeModel( image: imageView.image, topMeme: topTextField.text, bottomMeme: bottomTextField.text,  memedImage: screenShot )
+        memedImageToBeSaved = MemeModel(  )
         let shareImageController = UIActivityViewController( activityItems: [screenShot], applicationActivities: nil )
+        shareImageController.completionWithItemsHandler = {
+            ( acivity, completed, items, error ) in
+            if completed{
+                self.saveTheMemeImage( image: self.imageView.image!, topMeme: self.topTextField.text!, bottomMeme: self.bottomTextField.text!,  memedImage: screenShot )
+            }
+        }
         self.present( shareImageController, animated: true, completion: nil )
+    }
+    
+    func saveTheMemeImage( image: UIImage, topMeme: String, bottomMeme: String, memedImage: UIImage) {
+        memedImageToBeSaved = MemeModel( image: image,topMeme: topMeme, bottomMeme: bottomMeme, memedImage: memedImage )
     }
     
     //This function takes a screenshot of the current displayed view. It will be called to save the image with the user typed bottom and top memes
@@ -110,10 +124,6 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
-        if ( textField == bottomTextField ) {
-            unsubscribeFromKeyBoardNotification()
-            unsubscribeFromKeyBoardHidingNotification()
-        }
         return true;
     }
     
@@ -124,11 +134,16 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     @objc func keyboardWillShow( _ notification: Notification ){
-        self.view.frame.origin.y = -getKeyboardHeight( notification )
+        if bottomTextField.isFirstResponder {
+            self.view.frame.origin.y = -getKeyboardHeight( notification )
+        }
+        
     }
     
     @objc func keyboardWillHide( _ notification: Notification ){
-        self.view.frame.origin.y = 0
+        if bottomTextField.isFirstResponder {
+            self.view.frame.origin.y = 0
+        }
     }
     
     func subscribeToKeyboardNotification(){
@@ -146,10 +161,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     func textFieldDidBeginEditing(_ textField: UITextField ) {
         textField.text = ""
-        if ( textField == bottomTextField ) {
-            subscribeToKeyboardNotification()
-            subscribeToKeyboardHidingNotification()
-        }
+            
         textField.textAlignment = .center
     }
     
@@ -165,6 +177,14 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         NotificationCenter.default.removeObserver( self,
                                                    name: UIResponder.keyboardWillHideNotification,
                                                    object: nil )
+    }
+    
+    @IBAction func cancel () {
+        if ( self.imageView.animationDuration != nil ) {
+            self.imageView.image = nil
+        }
+        self.topTextField.text = "TOP"
+        self.bottomTextField.text = "BOTTOM"
     }
 }
 

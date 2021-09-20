@@ -70,6 +70,9 @@
                                                 <rect key="frame" x="302" y="7" width="92" height="30"/>
                                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                 <state key="normal" title="Cancel"/>
+                                                <connections>
+                                                    <action selector="cancel" destination="BYZ-38-t0r" eventType="touchUpInside" id="qLS-Qo-c0T"/>
+                                                </connections>
                                             </button>
                                         </barButtonItem>
                                     </navigationItem>
